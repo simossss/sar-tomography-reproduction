@@ -142,7 +142,8 @@ python scripts/aliasing_simulation.py
 
 ```
 Pomposi, S. "Independent Reproduction Attempt of SAR Doppler Tomography 
-for Subsurface Imaging of the Great Pyramid of Giza." Zenodo, 2026.
+for Subsurface Imaging of the Great Pyramid of Giza." Zenodo, 2026. 
+DOI: 10.5281/zenodo.19574701
 ```
 
 ## References
