@@ -141,8 +141,8 @@ python scripts/aliasing_simulation.py
 ## Citation
 
 ```
-[Author]. "Independent Reproduction Attempt of SAR Doppler Tomography 
-for Subsurface Imaging of the Great Pyramid of Giza." [TechRxiv/arXiv], 2026.
+Pomposi, S. "Independent Reproduction Attempt of SAR Doppler Tomography 
+for Subsurface Imaging of the Great Pyramid of Giza." Zenodo, 2026.
 ```
 
 ## References
