@@ -2,7 +2,7 @@
 
 An independent analysis of the SAR Doppler Tomography method published by Biondi & Malanga (2022) for imaging subsurface structures beneath the Great Pyramid of Giza using satellite radar.
 
-**Paper:** [link to TechRxiv/arXiv when available]
+**Paper:** https://zenodo.org/records/19574701
 
 ## Summary
 
