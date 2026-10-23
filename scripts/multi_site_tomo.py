@@ -10,13 +10,16 @@ Usage:
 Requires: step3_baselines.py to have been run first (produces baselines.json)
 """
 import numpy as np
-import tifffile
 import xml.etree.ElementTree as ET
 from glob import glob
 import os
+import sys
 import json
 
-SAFE_DIR = os.path.join(DATA_DIR, "sentinel1_giza_safe")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+
+SAFE_DIR = os.path.join(data_dir(), "sentinel1_giza_safe")
 
 # 20 sites across the scene — monuments, urban, desert, water, farmland
 SITES = {
@@ -34,7 +37,7 @@ SITES = {
     'cairo_airport':    {'lat': 30.1219, 'lon': 31.4056, 'desc': 'Cairo Airport area'},
     
     # Desert
-    'desert_south':     {'lat': 29.9500, 'lon': 31.1800, 'desc': 'Empty desert S'},
+    'desert_south':     {'lat': 29.9500, 'lon': 31.1800, 'desc': 'SE control (Shabramant fringe, not empty desert)'},
     'desert_west':      {'lat': 29.9900, 'lon': 31.0500, 'desc': 'Empty desert W'},
     'desert_sw':        {'lat': 29.9200, 'lon': 31.1000, 'desc': 'Empty desert SW'},
     
@@ -147,6 +150,13 @@ def extract_and_invert(safes, dates, B_perps, site_lat, site_lon, bl):
 print("=" * 60)
 print("MULTI-SITE TOMOGRAPHY — 20 LOCATIONS")
 print("=" * 60)
+
+if not os.path.isfile('baselines.json'):
+    print("baselines.json is absent. Run step3_baselines.py on a local Sentinel-1 stack first.")
+    print("No multi-site tomogram was computed.")
+    sys.exit(2)
+
+import tifffile
 
 with open('baselines.json') as f:
     bl = json.load(f)

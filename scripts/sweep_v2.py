@@ -1,31 +1,45 @@
 #!/usr/bin/env python3
 """
-sweep_v2.py — Corrected parameter sweep for SAR Doppler sub-aperture tomography.
+sweep_v2.py — Parameter sweep of this Doppler beamformer only.
 
-Fixes from v1:
-1. Uses corrected Δx = Δf·λ·R/(2V) instead of wrong Δx = V/Δf
-2. Removed seismic_vel from sweep parameters (was never used in computation)
-3. Cleaner SNR metric definition matching the paper
+Scope (do not over-read the output):
+- Averages sub-aperture spectra and applies A^H Y on sampled SLC columns.
+- Does not estimate sub-pixel displacements by cross-correlation.
+- Does not implement the published pseudoinverse A† Y.
+- A null result here is not a failure of the full Biondi processing chain
+  and is not a faithful reproduction.
 
-Sweeps: n_sub × bandwidth_ratio × depth_range × filter_type
-Tests both Giza pyramid and empty desert control with identical parameters.
+Geometry notes:
+- Δx = Δf·λ·R/(2V) is an along-track shift, not an elevation baseline.
+- The kz step still uses the withdrawn scalar B = Δx·sin(Δθ), because that
+  is the beamformer this sweep implements. Do not cite that scalar as
+  single-pass elevation resolution (~285 m remains withdrawn).
+- Incidence is SICD SCPCOA.IncidenceAng when present, else the angle at
+  the target. A future run is not a reissue of the Zenodo v1 SNR table.
+
+The southeast patch offsets are not geolocated in this script. v1 called
+that patch empty desert; that label is withdrawn (Shabramant / settled fringe).
 
 Usage:
-    python3 sweep_v2.py
+    SAR_DATA_DIR=/path/to/data python3 scripts/sweep_v2.py
 """
 import numpy as np
-import sarpy.io.complex as sicd_io
 import itertools
 import json
 import sys
 import os
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+from incidence import target_incidence_rad
+
+DATA_DIR = data_dir()
 GIZA_SICD = os.path.join(DATA_DIR, "umbra/giza/2023-03-08-07-57-53_UMBRA-04_SICD.nitf")
 
-# Giza pyramid center and desert control (same scene)
+# Pixel offsets in the Giza SICD. Not geolocated here.
 PATCH_SIZE = 800
-GIZA_CENTER = (5251, 10136)     # (row, col) — pyramid
-DESERT_CENTER = (7251, 6986)    # (row, col) — empty desert ~5km SE
+GIZA_CENTER = (5251, 10136)       # (row, col) — Khufu patch
+CONTROL_CENTER = (7251, 6986)     # (row, col) — southeast control; not empty Sahara
 
 # Target depth band for scoring (known pyramid chamber range)
 TARGET_DEPTH_MIN = 20   # Queen's Chamber ~21m
@@ -42,7 +56,15 @@ PARAM_GRID = {
 
 def load_data():
     """Load SICD and extract both patches."""
+    try:
+        import sarpy.io.complex as sicd_io
+    except ImportError:
+        print("ERROR: pip install sarpy numpy")
+        print("No sweep was run. v1 SNR figures are not recomputed.")
+        sys.exit(1)
+
     print("Loading SICD...")
+    print("Beamformer only: A^H Y on columns. No displacement cross-correlation. No A†Y.")
     reader = sicd_io.open(GIZA_SICD)
     meta = reader.sicd_meta
 
@@ -55,9 +77,7 @@ def load_data():
     arp = np.array([meta.SCPCOA.ARPPos.X, meta.SCPCOA.ARPPos.Y, meta.SCPCOA.ARPPos.Z])
     scp = np.array([meta.GeoData.SCP.ECF.X, meta.GeoData.SCP.ECF.Y, meta.GeoData.SCP.ECF.Z])
     slant_range = np.linalg.norm(arp - scp)
-    cos_inc = (np.linalg.norm(arp)**2 + slant_range**2 - np.linalg.norm(scp)**2) / \
-              (2 * np.linalg.norm(arp) * slant_range)
-    inc_angle = np.arccos(np.clip(cos_inc, -1, 1))
+    inc_angle, inc_source, look_angle = target_incidence_rad(meta, arp, scp, slant_range)
 
     # Doppler FM rate (corrected formula)
     ka = 2 * velocity**2 / (wavelength * slant_range)
@@ -76,16 +96,18 @@ def load_data():
     print(f"  Doppler BW: {doppler_bw:.0f} Hz")
     print(f"  Doppler FM rate (ka): {ka:.1f} Hz/s")
     print(f"  Range: {slant_range/1000:.0f} km")
-    print(f"  Inc angle: {np.degrees(inc_angle):.1f}°")
+    print(f"  Incidence: {np.degrees(inc_angle):.2f}° ({inc_source})")
+    print(f"  Look angle (not incidence): {np.degrees(look_angle):.2f}°")
+    print("  Southeast patch is not geolocated here and is not an empty-desert control.")
 
     # Read patches
     half = PATCH_SIZE // 2
     gr, gc = GIZA_CENTER
-    dr, dc = DESERT_CENTER
+    dr, dc = CONTROL_CENTER
 
     print(f"\n  Reading Giza patch ({PATCH_SIZE}x{PATCH_SIZE})...")
     giza_data = reader[(gr - half, gr + half, 1), (gc - half, gc + half, 1)]
-    print(f"  Reading Desert patch ({PATCH_SIZE}x{PATCH_SIZE})...")
+    print(f"  Reading southeast control patch ({PATCH_SIZE}x{PATCH_SIZE})...")
     desert_data = reader[(dr - half, dr + half, 1), (dc - half, dc + half, 1)]
 
     print(f"  Giza amp: {np.mean(np.abs(giza_data)):.6f}")
@@ -98,11 +120,10 @@ def run_experiment(data, params, n_sub, bdl_ratio, depth_max, filter_type):
     """
     Run single-pass Doppler sub-aperture tomography on a patch.
     
-    Returns the SNR metric: peak amplitude in the target depth band
-    (20-80m) divided by mean amplitude across the full depth range,
-    averaged over all columns in the patch.
-    
-    Uses CORRECTED along-track formula: Δx = Δf·λ·R/(2V)
+    Returns SNR_peak_mean: peak amplitude in the 20-80 m band divided by
+    the mean amplitude across the profile, averaged over sampled columns.
+
+    This is not §4.3 SNR_energy. Δx below is along-track only.
     """
     velocity = params['velocity']
     wavelength = params['wavelength']
@@ -212,7 +233,16 @@ def run_experiment(data, params, n_sub, bdl_ratio, depth_max, filter_type):
 # =============================================
 # MAIN
 # =============================================
-if __name__ == "__main__":
+def main():
+    print(f"DATA_DIR = {DATA_DIR}")
+    print("Partial beamformer sweep (A^H Y). Not the published A†Y chain.")
+    print("v1 ~285 m elevation claim is not computed and stays withdrawn.")
+    if not os.path.isfile(GIZA_SICD):
+        print("\nLocal Giza SICD is absent. No sweep was run.")
+        print(f"  missing: {GIZA_SICD}")
+        print("Set SAR_DATA_DIR (or DATA_DIR). This exit does not invent SNR numbers.")
+        return 2
+
     giza_data, desert_data, params = load_data()
 
     # Generate parameter combinations
@@ -227,7 +257,8 @@ if __name__ == "__main__":
     print(f"Parameters: {', '.join(keys)}")
     print(f"Grid sizes: {[len(v) for v in values]}")
     print(f"Target depth band: {TARGET_DEPTH_MIN}-{TARGET_DEPTH_MAX} m")
-    print(f"Using corrected Δx = Δf·λ·R/(2V) formula")
+    print("Metric: SNR_peak_mean (column peak/mean). Not SNR_energy.")
+    print("Along-track Δx = Δf·λ·R/(2V). Not an elevation baseline.")
     print()
 
     results = []
@@ -277,18 +308,20 @@ if __name__ == "__main__":
 
     print(f"Valid experiments: {n_valid} of {n_total}")
     print(f"")
-    print(f"Giza SNR:   mean={np.mean(giza_snrs):.4f}, std={np.std(giza_snrs):.4f}")
-    print(f"Desert SNR: mean={np.mean(desert_snrs):.4f}, std={np.std(desert_snrs):.4f}")
+    print(f"Giza SNR_peak_mean:    mean={np.mean(giza_snrs):.4f}, std={np.std(giza_snrs):.4f}")
+    print(f"Control SNR_peak_mean: mean={np.mean(desert_snrs):.4f}, std={np.std(desert_snrs):.4f}")
     print(f"Difference: mean={np.mean(diffs):.4f}, std={np.std(diffs):.4f}")
     print(f"")
-    print(f"Experiments where Giza > 1.5× Desert: {giza_wins} of {n_valid}")
-    print(f"Max Giza SNR: {np.max(giza_snrs):.4f}")
-    print(f"Max Desert SNR: {np.max(desert_snrs):.4f}")
+    print(f"Experiments where Giza > 1.5× control: {giza_wins} of {n_valid}")
+    print(f"Max Giza SNR_peak_mean: {np.max(giza_snrs):.4f}")
+    print(f"Max control SNR_peak_mean: {np.max(desert_snrs):.4f}")
+    print("These figures are this run only. They do not replace the v1 table")
+    print("and they do not show that the full published chain fails.")
     print(f"")
 
     # Correlation between Giza and Desert SNR across experiments
     corr = np.corrcoef(giza_snrs, desert_snrs)[0, 1]
-    print(f"Giza-Desert SNR correlation across experiments: {corr:.4f}")
+    print(f"Giza-control SNR_peak_mean correlation across experiments: {corr:.4f}")
 
     # Top 5 experiments by Giza SNR
     print(f"\nTop 5 experiments by Giza SNR:")
@@ -316,7 +349,9 @@ if __name__ == "__main__":
             'diff_std': float(np.std(diffs)),
             'giza_wins': giza_wins,
             'correlation': float(corr),
-            'formula': 'corrected: Δx = Δf·λ·R/(2V)',
+            'formula': 'partial beamformer A^H Y; along-track Δx = Δf·λ·R/(2V); incidence from SICD or target angle',
+            'scope': 'not displacement cross-correlation; not A†Y; not a full-chain reproduction',
+            'metric': 'SNR_peak_mean',
             'results': results,
         }, f, indent=2)
     print(f"\nResults saved to sweep_v2_results.json")
@@ -325,8 +360,14 @@ if __name__ == "__main__":
     print(f"CONCLUSION")
     print(f"{'='*60}")
     if giza_wins == 0:
-        print(f"No parameter combination produced a tomographic response that")
-        print(f"differentiated the pyramid from empty desert.")
+        print("No parameter combination in this partial beamformer crossed")
+        print("the 1.5× threshold between the pyramid patch and the control patch.")
     else:
-        print(f"{giza_wins} of {n_valid} experiments showed Giza > 1.5× Desert.")
-        print(f"Manual inspection recommended.")
+        print(f"{giza_wins} of {n_valid} experiments showed Giza > 1.5× control.")
+        print("Manual inspection recommended.")
+    print("Not a claim that the full published micro-motion chain fails.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

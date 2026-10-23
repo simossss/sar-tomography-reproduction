@@ -2,17 +2,20 @@
 Multi-pass tomography on Giza — using IW2 (the correct subswath).
 """
 import numpy as np
-import tifffile
 import xml.etree.ElementTree as ET
 from glob import glob
 import os
+import sys
 import json
 
-SAFE_DIR = os.path.join(DATA_DIR, "sentinel1_giza_safe")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+
+SAFE_DIR = os.path.join(data_dir(), "sentinel1_giza_safe")
 
 SITES = {
     'pyramid':  {'lat': 29.9792, 'lon': 31.1342, 'desc': 'Great Pyramid'},
-    'desert':   {'lat': 29.9500, 'lon': 31.1800, 'desc': 'Empty desert'},
+    'desert':   {'lat': 29.9500, 'lon': 31.1800, 'desc': 'SE control (Shabramant fringe, not empty desert)'},
     'sphinx':   {'lat': 29.9753, 'lon': 31.1376, 'desc': 'Sphinx'},
     'cairo':    {'lat': 30.0444, 'lon': 31.2357, 'desc': 'Downtown Cairo'},
     'farmland': {'lat': 30.0800, 'lon': 31.1000, 'desc': 'Farmland'},
@@ -52,6 +55,13 @@ def find_pixel_iw2(safe_path, target_lat, target_lon):
     return {'line': tgt_line, 'pixel': tgt_pixel, 'tiff': tiff[0] if tiff else None}
 
 # Load baselines
+if not os.path.isfile('baselines.json'):
+    print("baselines.json is absent. Run step3_baselines.py on a local Sentinel-1 stack first.")
+    print("No tomogram was computed. This is not a new null result.")
+    sys.exit(2)
+
+import tifffile
+
 with open('baselines.json') as f:
     bl = json.load(f)
 B_perps = np.array(bl['B_perps'])
