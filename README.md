@@ -1,8 +1,9 @@
 # Independent assessment: single-pass SAR Doppler tomography
 
-Manuscript draft for review of the Zenodo v1 note [10.5281/zenodo.19574701](https://zenodo.org/records/19574701). This repository revision does **not** upload a new Zenodo version and does not change the punkjazz.ai site.
+Zenodo v2 is published as [10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771) under the manuscript title. The v1 record remains [10.5281/zenodo.19574701](https://zenodo.org/records/19574701). This repository does not upload a further Zenodo version and does not change the punkjazz.ai site.
 
 **Manuscript:** `paper/technical_note_SAR_tomography.md`  
+**PDF:** `paper/technical_note_SAR_tomography.pdf` (rebuild with `scripts/build_pdf.sh`; pandoc + XeLaTeX or LuaLaTeX)  
 **Short changelog:** `CHANGELOG.md`
 
 Biondi & Malanga, *Remote Sensing* 2022, 14, 5231, was retracted on 10 August 2026 (*Remote Sensing* 2026, 18, 2679; [doi:10.3390/rs18162679](https://doi.org/10.3390/rs18162679)). The retraction is a status update. It is not evidence for this note’s geometry.
@@ -16,21 +17,23 @@ Biondi & Malanga, *Remote Sensing* 2022, 14, 5231, was retracted on 10 August 20
 - Multi-pass geometry can improve elevation resolution. **X- and C-band do not reach** the Khufu chambers through intact limestone. The 15-image Sentinel-1 result is a preliminary diagnostic (pyramid–control correlation 0.9913 under simplified processing), not a physical negative baseline.
 - Section 6.3 is a toy sidelobe illustration. The retracted paper’s Table 2 lists 12 products, not 6.
 
-## Titles (not yet aligned)
+## Titles
 
 | Surface | Title |
 |---------|--------|
-| This manuscript | On the Reproducibility of Single-Pass SAR Doppler Tomography for Subsurface Imaging: An Independent Assessment |
+| Manuscript, PDF, and Zenodo v2 ([10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771)) | On the Reproducibility of Single-Pass SAR Doppler Tomography for Subsurface Imaging: An Independent Assessment |
 | Zenodo v1 record | Independent Reproduction Attempt of SAR Doppler Tomography for Subsurface Imaging of the Great Pyramid of Giza |
 
-Use one title on the PDF and the Zenodo record when a v2 deposit is approved. This branch does not retitle the record.
+v2 already uses the manuscript title. This branch does not edit the Zenodo record.
 
 ## Repository structure
 
 ```
 ├── paper/technical_note_SAR_tomography.md
+├── paper/technical_note_SAR_tomography.pdf
 ├── CHANGELOG.md
 ├── scripts/
+│   ├── build_pdf.sh              # pandoc + XeLaTeX/LuaLaTeX
 │   ├── data_dir.py               # SAR_DATA_DIR or DATA_DIR, else ./data
 │   ├── incidence.py              # SICD incidence, else angle at the target
 │   ├── verify_v2.py              # Metadata and along-track quantities
@@ -113,12 +116,10 @@ python3 scripts/aliasing_simulation.py  # toy only; no SAR scene
 
 ## Citation
 
-Manuscript title and Zenodo v1 title differ. Until they are aligned:
-
 ```
 Pomposi, S. "On the Reproducibility of Single-Pass SAR Doppler Tomography
-for Subsurface Imaging: An Independent Assessment." Manuscript draft, 2026.
-Zenodo v1: 10.5281/zenodo.19574701
+for Subsurface Imaging: An Independent Assessment." Zenodo, 2026.
+https://doi.org/10.5281/zenodo.23593771
 ```
 
 ## References
