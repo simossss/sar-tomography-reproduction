@@ -3,13 +3,20 @@ Step 3: Unzip Sentinel-1 SAFE files and compute perpendicular baselines.
 This tells us the actual kz geometry before we do any heavy processing.
 """
 import os
+import sys
 import zipfile
 import xml.etree.ElementTree as ET
 import numpy as np
 from glob import glob
 
-DATA_DIR = os.path.join(DATA_DIR, "sentinel1_giza")
-SAFE_DIR = os.path.join(DATA_DIR, "sentinel1_giza_safe")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+
+# Zips and extracted SAFE trees are siblings under the data root.
+# Do not join DATA_DIR onto itself.
+_ROOT = data_dir()
+DATA_DIR = os.path.join(_ROOT, "sentinel1_giza")
+SAFE_DIR = os.path.join(_ROOT, "sentinel1_giza_safe")
 
 # Giza coordinates
 GIZA_LAT = 29.9792

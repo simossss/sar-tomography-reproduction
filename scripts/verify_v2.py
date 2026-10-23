@@ -1,28 +1,38 @@
 #!/usr/bin/env python3
 """
-verify_v2.py — Corrected verification of SAR Doppler Tomography physics.
+verify_v2.py — Metadata and along-track geometry for one spotlight SLC.
 
-Key fix: Uses Doppler FM rate (ka) to map Doppler step to along-track
-distance, per standard SAR processing convention.
+What this script does
+- Reads SICD metadata when a local file is present.
+- Reports along-track Doppler quantities (velocity, bandwidth, ka, Δx).
+- Reads ground incidence from SICD SCPCOA.IncidenceAng when present.
+  If that field is missing, it uses the geometric angle at the target.
+  The angle at the spacecraft is printed only as a look-angle diagnostic.
 
-Old (WRONG):  Δx = V / Δf          → 15.8m  → B_perp = 15.6mm  → res = 11.3km
-New (CORRECT): Δx = Δf × λR / (2V) → 622m   → B_perp = 609mm   → res = ~287m
-
-Conclusion unchanged: ~287m resolution cannot resolve 43m chambers.
-But the number is materially different and the paper must reflect it.
+What this script does not do
+- It does not treat B_perp = Δx·sin(Δθ) as an elevation baseline.
+  That v1 construction is printed, labeled withdrawn, and is not a result.
+- It does not reinstate the ~285 m single-pass elevation-resolution claim.
+  A single monostatic SAR image has no elevation aperture: azimuth
+  sub-apertures are not B_perp.
+- It does not reproduce the published micro-motion chain
+  (no displacement cross-correlation, no A†Y).
 
 Usage:
-    python3 verify_v2.py
+    SAR_DATA_DIR=/path/to/data python3 scripts/verify_v2.py
+
+Exit code 2 means the local SICD files are absent. That is not a measurement.
 """
-import numpy as np
+import os
 import sys
 
-try:
-    import sarpy.io.complex as sicd_io
-import os
-except ImportError:
-    print("ERROR: pip install sarpy numpy")
-    sys.exit(1)
+import numpy as np
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+from incidence import target_incidence_rad
+
+DATA_DIR = data_dir()
 
 FILES = {
     "giza": os.path.join(DATA_DIR, "umbra/giza/2023-03-08-07-57-53_UMBRA-04_SICD.nitf"),
@@ -30,15 +40,24 @@ FILES = {
 }
 
 
+def _open_reader(filepath):
+    try:
+        import sarpy.io.complex as sicd_io
+    except ImportError:
+        print("ERROR: pip install sarpy numpy")
+        print("No scene was read. No resolution figure was computed.")
+        sys.exit(1)
+    return sicd_io.open(filepath)
+
+
 def analyze(filepath, n_sub=30, bdl_ratio=0.5):
     print(f"\n{'='*70}")
-    print(f"FILE: {filepath.split('/')[-1]}")
+    print(f"FILE: {os.path.basename(filepath)}")
     print(f"{'='*70}")
 
-    reader = sicd_io.open(filepath)
+    reader = _open_reader(filepath)
     meta = reader.sicd_meta
 
-    # Extract parameters
     vx, vy, vz = meta.SCPCOA.ARPVel.X, meta.SCPCOA.ARPVel.Y, meta.SCPCOA.ARPVel.Z
     velocity = np.sqrt(vx**2 + vy**2 + vz**2)
     k_row = meta.Grid.Row.KCtr
@@ -50,212 +69,138 @@ def analyze(filepath, n_sub=30, bdl_ratio=0.5):
     scp = np.array([meta.GeoData.SCP.ECF.X, meta.GeoData.SCP.ECF.Y, meta.GeoData.SCP.ECF.Z])
     slant_range = np.linalg.norm(arp - scp)
 
-    earth_r = 6371000
-    cos_inc = (np.linalg.norm(arp)**2 + slant_range**2 - np.linalg.norm(scp)**2) / \
-              (2 * np.linalg.norm(arp) * slant_range)
-    inc_angle = np.arccos(np.clip(cos_inc, -1, 1))
+    inc_angle, inc_source, look_angle = target_incidence_rad(meta, arp, scp, slant_range)
+    azimuth_res = velocity / doppler_bw if doppler_bw else float("nan")
 
-    print(f"\nSAR Parameters:")
+    print("\nSAR parameters (descriptive; not an elevation resolution):")
     print(f"  Velocity:       {velocity:.1f} m/s")
     print(f"  Wavelength:     {wavelength*100:.3f} cm")
     print(f"  Doppler BW:     {doppler_bw:.1f} Hz")
     print(f"  Slant range:    {slant_range/1000:.1f} km")
-    print(f"  Inc angle:      {np.degrees(inc_angle):.1f}°")
+    print(f"  Incidence:      {np.degrees(inc_angle):.2f}°  ({inc_source})")
+    print(f"  Look angle:     {np.degrees(look_angle):.2f}°  (spacecraft; not incidence)")
+    print(f"  Azimuth res:    {azimuth_res:.3f} m  (V / Doppler BW)")
 
-    # Sub-aperture parameters
     processing_bw = doppler_bw * (1 - bdl_ratio)
     doppler_step = processing_bw / n_sub
+    ka = 2 * velocity**2 / (wavelength * slant_range)
 
-    print(f"\nSub-aperture Configuration:")
+    print(f"\nSub-aperture configuration (azimuth):")
     print(f"  N_sub:          {n_sub}")
     print(f"  BDL ratio:      {bdl_ratio}")
     print(f"  Processing BW:  {processing_bw:.1f} Hz")
     print(f"  Doppler step:   {doppler_step:.2f} Hz")
-
-    # =============================================
-    # Doppler FM rate
-    # =============================================
-    # ka = 2V²/(λR) — the azimuth chirp rate
-    ka = 2 * velocity**2 / (wavelength * slant_range)
-
-    print(f"\nDoppler FM rate:")
     print(f"  ka = 2V²/(λR) = {ka:.2f} Hz/s")
 
-    # =============================================
-    # CORRECTED along-track shift
-    # =============================================
-    # Δx = V × Δf / ka = Δf × λ × R / (2V)
-    dx_correct = doppler_step * wavelength * slant_range / (2 * velocity)
-
-    # OLD (wrong) for comparison
+    # Along-track shift from the Doppler FM rate. This is an azimuth
+    # distance, not an elevation baseline.
+    dx = doppler_step * wavelength * slant_range / (2 * velocity)
     dx_old = velocity / doppler_step
+    delta_theta = doppler_step * wavelength / (2 * velocity)
 
     print(f"\nAlong-track shift per sub-aperture step:")
-    print(f"  CORRECTED: Δx = ΔfλR/(2V) = {dx_correct:.1f} m")
-    print(f"  OLD WRONG: Δx = V/Δf       = {dx_old:.1f} m")
-    print(f"  Ratio: {dx_correct/dx_old:.1f}×")
-
-    # =============================================
-    # Look angle change (same for both formulas)
-    # =============================================
-    delta_theta = doppler_step * wavelength / (2 * velocity)
-    print(f"\nLook angle change per SA step:")
+    print(f"  Δx = Δf·λ·R/(2V) = {dx:.1f} m")
+    print(f"  v1 wrong Δx = V/Δf = {dx_old:.1f} m")
+    print(f"\nAzimuth look-angle change per SA step:")
     print(f"  Δθ = {np.degrees(delta_theta):.4f}° ({np.degrees(delta_theta)*3600:.1f} arcsec)")
 
-    # =============================================
-    # Perpendicular baseline
-    # =============================================
-    # B_perp = Δx × sin(Δθ)
-    # For small angles: B_perp ≈ Δx × Δθ ≈ Δx²/R
-    bperp_correct = dx_correct * np.sin(delta_theta)
-    bperp_old = dx_old * np.sin(delta_theta)
-
-    # Alternative: B_perp = Δx²/(2R) — quadratic approximation
-    bperp_quad = dx_correct**2 / (2 * slant_range)
-
-    print(f"\nPerpendicular baseline per SA step:")
-    print(f"  CORRECTED: B_perp = Δx×sin(Δθ)  = {bperp_correct*1000:.1f} mm")
-    print(f"  QUADRATIC: B_perp = Δx²/(2R)    = {bperp_quad*1000:.1f} mm")
-    print(f"  OLD WRONG: B_perp = Δx×sin(Δθ)  = {bperp_old*1000:.1f} mm")
-
-    total_bperp_correct = bperp_correct * n_sub
-    total_bperp_old = bperp_old * n_sub
-    print(f"\nTotal B_perp span ({n_sub} sub-apertures):")
-    print(f"  CORRECTED: {total_bperp_correct*1000:.1f} mm ({total_bperp_correct:.3f} m)")
-    print(f"  OLD WRONG: {total_bperp_old*1000:.1f} mm ({total_bperp_old:.3f} m)")
-
-    # =============================================
-    # kz and resolution
-    # =============================================
-    kz_step_correct = 4 * np.pi * bperp_correct / (wavelength * slant_range * np.sin(inc_angle))
-    kz_step_old = 4 * np.pi * bperp_old / (wavelength * slant_range * np.sin(inc_angle))
-
-    kz_span_correct = kz_step_correct * n_sub
-    kz_span_old = kz_step_old * n_sub
-
-    res_correct = 2 * np.pi / kz_span_correct if kz_span_correct > 0 else float('inf')
-    res_old = 2 * np.pi / kz_span_old if kz_span_old > 0 else float('inf')
-
-    amb_correct = 2 * np.pi / kz_step_correct if kz_step_correct > 0 else float('inf')
-    amb_old = 2 * np.pi / kz_step_old if kz_step_old > 0 else float('inf')
-
-    print(f"\nkz step:")
-    print(f"  CORRECTED: {kz_step_correct:.8f} rad/m")
-    print(f"  OLD WRONG: {kz_step_old:.8f} rad/m")
+    # Withdrawn v1 scalar. Kept so the arithmetic can be inspected.
+    # It is not B_perp of SAR tomography.
+    b_withdrawn = dx * np.sin(delta_theta)
+    kz_withdrawn = 4 * np.pi * b_withdrawn / (wavelength * slant_range * np.sin(inc_angle))
+    kz_span = kz_withdrawn * n_sub
+    res_withdrawn = 2 * np.pi / kz_span if kz_span > 0 else float("inf")
+    amb_withdrawn = 2 * np.pi / kz_withdrawn if kz_withdrawn > 0 else float("inf")
 
     print(f"\n{'='*70}")
-    print(f"RESULTS")
+    print("WITHDRAWN v1 SCALAR (not an elevation aperture, not a result)")
     print(f"{'='*70}")
-    print(f"\n{'':>25s}  {'CORRECTED':>12s}  {'OLD (wrong)':>12s}")
-    print(f"{'-'*55}")
-    print(f"{'Δx per SA':>25s}  {dx_correct:12.1f} m  {dx_old:12.1f} m")
-    print(f"{'B_perp per SA':>25s}  {bperp_correct*1000:12.1f} mm  {bperp_old*1000:12.1f} mm")
-    print(f"{'B_perp total':>25s}  {total_bperp_correct*1000:12.1f} mm  {total_bperp_old*1000:12.1f} mm")
-    print(f"{'kz step':>25s}  {kz_step_correct:12.8f}  {kz_step_old:12.8f}")
-    print(f"{'Elevation resolution':>25s}  {res_correct:12.1f} m  {res_old:12.1f} m")
-    print(f"{'Ambiguity height':>25s}  {amb_correct:12.1f} m  {amb_old:12.1f} m")
-
-    # Context
-    print(f"\n{'='*70}")
-    print(f"FEASIBILITY")
-    print(f"{'='*70}")
-    targets = [
-        ("King's Chamber", 43),
-        ("Queen's Chamber", 21),
-        ("Gran Sasso LNGS", 1400),
-        ("Khafre shafts", 600),
-        ("Underground city", 1200),
-        ("Vesuvius magma", 6000),
-    ]
-
-    for name, depth in targets:
-        ratio = res_correct / depth
-        within_amb = depth < amb_correct
-        resolvable = res_correct < depth / 2
-        if resolvable and within_amb:
-            status = "POSSIBLE (geometrically)"
-        elif within_amb:
-            status = f"NO — resolution {ratio:.1f}× target"
-        else:
-            status = f"NO — outside ambiguity"
-        print(f"  {name:25s} {depth:6d}m  {status}")
-
-    print(f"\n  Note: 'POSSIBLE geometrically' means the resolution and ambiguity")
-    print(f"  would allow detection IF the signal can reach the target.")
-    print(f"  X-band EM penetration into limestone is ~cm, so physical")
-    print(f"  detection of buried chambers requires a non-EM mechanism.")
+    print("B = Δx·sin(Δθ) projects along-track diversity into a scalar.")
+    print("That scalar is not the tomographic baseline normal to the")
+    print("flight track and the line of sight. Do not cite the meters")
+    print("below as single-pass elevation resolution.")
+    print(f"  withdrawn scalar per SA step: {b_withdrawn*1000:.1f} mm")
+    print(f"  withdrawn scalar span:        {b_withdrawn*n_sub:.3f} m")
+    print(f"  implied v1 'resolution':      {res_withdrawn:.1f} m  WITHDRAWN")
+    print(f"  implied v1 'ambiguity':       {amb_withdrawn:.1f} m  WITHDRAWN")
+    print("Operative statement: zero single-pass elevation aperture.")
 
     return {
-        'dx_correct': dx_correct,
-        'dx_old': dx_old,
-        'bperp_correct': bperp_correct,
-        'bperp_old': bperp_old,
-        'res_correct': res_correct,
-        'res_old': res_old,
-        'amb_correct': amb_correct,
-        'amb_old': amb_old,
-        'ka': ka,
-        'velocity': velocity,
-        'wavelength': wavelength,
-        'doppler_bw': doppler_bw,
-        'slant_range': slant_range,
-        'inc_angle': inc_angle,
+        "dx": dx,
+        "velocity": velocity,
+        "wavelength": wavelength,
+        "doppler_bw": doppler_bw,
+        "slant_range": slant_range,
+        "inc_angle": inc_angle,
+        "inc_source": inc_source,
+        "ka": ka,
+        "azimuth_res": azimuth_res,
     }
 
 
-# =============================================
-# MAIN
-# =============================================
-if __name__ == "__main__":
+def _varying_n(meta_r):
+    print(f"\n\n{'='*70}")
+    print("VARYING N_SUB — along-track Δx only (Giza metadata)")
+    print("The withdrawn v1 scalar is shown so it is not mistaken for a result.")
+    print(f"{'='*70}")
+    print(f"{'N_sub':>6s}  {'Δx (m)':>8s}  {'withdrawn mm':>12s}  {'DO NOT CITE m':>14s}")
+    print("-" * 50)
+    for n in [2, 5, 10, 15, 20, 30, 50]:
+        processing_bw = meta_r["doppler_bw"] * 0.5
+        ds = processing_bw / n
+        dx = ds * meta_r["wavelength"] * meta_r["slant_range"] / (2 * meta_r["velocity"])
+        dtheta = ds * meta_r["wavelength"] / (2 * meta_r["velocity"])
+        bp = dx * np.sin(dtheta)
+        kzs = 4 * np.pi * bp / (
+            meta_r["wavelength"] * meta_r["slant_range"] * np.sin(meta_r["inc_angle"])
+        )
+        res = 2 * np.pi / (kzs * n) if kzs > 0 else float("inf")
+        print(f"{n:6d}  {dx:8.1f}  {bp*1000:12.1f}  {res:14.1f}")
+
+
+def main():
     print("=" * 70)
-    print("SAR DOPPLER TOMOGRAPHY — CORRECTED PHYSICS VERIFICATION (v2)")
+    print("SAR DOPPLER TOMOGRAPHY — METADATA / ALONG-TRACK CHECK")
     print("=" * 70)
-    print("Fix: Uses Doppler FM rate (ka) for along-track distance mapping")
-    print("instead of the incorrect Δx = V/Δf formula.")
+    print(f"DATA_DIR = {DATA_DIR}")
+    print("Single-pass elevation aperture: none.")
+    print("v1 ~285 m / ~618 mm elevation claim: withdrawn.")
     print("=" * 70)
+
+    missing = [path for path in FILES.values() if not os.path.isfile(path)]
+    if missing:
+        print("\nLocal SICD files are not in DATA_DIR. Nothing was measured.")
+        print("Set SAR_DATA_DIR (or DATA_DIR) to the directory that contains:")
+        for path in missing:
+            print(f"  missing: {path}")
+        print("\nThis exit does not recompute or restore the withdrawn 285 m figure.")
+        return 2
 
     results = {}
     for name, path in FILES.items():
         results[name] = analyze(path)
 
-    # Also test with varying N_sub
-    print(f"\n\n{'='*70}")
-    print("VARYING N_SUB (Giza)")
-    print(f"{'='*70}")
-    print(f"{'N_sub':>6s}  {'Δx (m)':>8s}  {'B_perp (mm)':>12s}  {'Resolution':>12s}  {'Ambiguity':>12s}")
-    print("-" * 60)
-    for n in [2, 5, 10, 15, 20, 30, 50]:
-        r = analyze.__wrapped__(FILES["giza"], n) if hasattr(analyze, '__wrapped__') else None
-        # Inline calculation
-        meta_r = results['giza']
-        processing_bw = meta_r['doppler_bw'] * 0.5
-        ds = processing_bw / n
-        dx = ds * meta_r['wavelength'] * meta_r['slant_range'] / (2 * meta_r['velocity'])
-        dtheta = ds * meta_r['wavelength'] / (2 * meta_r['velocity'])
-        bp = dx * np.sin(dtheta)
-        kzs = 4 * np.pi * bp / (meta_r['wavelength'] * meta_r['slant_range'] * np.sin(meta_r['inc_angle']))
-        res = 2 * np.pi / (kzs * n) if kzs > 0 else float('inf')
-        amb = 2 * np.pi / kzs if kzs > 0 else float('inf')
-        print(f"{n:6d}  {dx:8.1f}  {bp*1000:12.1f}  {res:12.1f} m  {amb:12.1f} m")
+    _varying_n(results["giza"])
 
     print(f"\n{'='*70}")
     print("CONCLUSION")
     print(f"{'='*70}")
-    r = results['giza']
-    print(f"""
-CORRECTED elevation resolution: {r['res_correct']:.0f} m (was {r['res_old']:.0f} m in v1)
+    print(
+        """
+Azimuth sub-apertures inside one monostatic SLC are not an elevation
+baseline. The v1 map B = Δx·sin(Δθ) → hundreds of meters of elevation
+resolution is withdrawn and is not reinstated by the incidence-angle fix.
 
-The corrected formula uses the Doppler FM rate (ka = 2V²/λR) to map
-Doppler frequency steps to along-track distance, per standard SAR 
-processing convention. This gives Δx = {r['dx_correct']:.0f}m per sub-aperture step
-(vs {r['dx_old']:.1f}m in the incorrect v1 formula).
+Incidence used above is SICD SCPCOA.IncidenceAng when the file provides
+it, otherwise the geometric angle at the target. The spacecraft look
+angle is not that incidence.
 
-The resulting elevation resolution of ~{r['res_correct']:.0f}m is still far too coarse
-to resolve the King's Chamber at 43m depth ({r['res_correct']/43:.0f}× the target depth).
-The deep claims (600m shafts, 1200m underground city, 6km magma chamber)
-remain impossible.
+This script does not run displacement cross-correlation or A†Y and is
+not a reproduction of the published micro-motion chain.
+"""
+    )
+    return 0
 
-The conclusion is UNCHANGED: single-pass Doppler sub-aperture SAR
-cannot resolve subsurface structures at any claimed depth.
-The numerical margin is smaller ({r['res_correct']/43:.0f}× vs {r['res_old']/43:.0f}×) but still decisive.
-""")
+
+if __name__ == "__main__":
+    sys.exit(main())

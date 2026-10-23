@@ -3,13 +3,13 @@
 aliasing_simulation.py — Demonstrate how tomographic aliasing creates
 the illusion of deep underground structures from real shallow detections.
 
-This script uses NO real data. It creates a synthetic SAR tomography scenario
-with known ground truth, then shows how the beamformer output produces
-periodic ghost copies of shallow structures extending to arbitrary depth.
+This script uses NO real data. It is a toy point-spread illustration, not a
+diagnosis of the published images. Table 2 of Biondi & Malanga (2022) lists
+12 products, not 6; the 6-image case here is a sparse-baseline toy only.
 
-The simulation models what would happen if Biondi's multi-pass processing
-genuinely detects the King's Chamber at 43m — and why that real detection
-would create the appearance of structures at 600m and beyond.
+The simulation plants shallow scatterers and shows how a sparse-baseline
+beamformer can place energy at greater reconstruction ranges. It does not
+explain the published figures.
 
 Usage:
     python3 aliasing_simulation.py
@@ -219,8 +219,8 @@ depths = s4['depths']
 amb = s4['ambiguity']
 
 # Find all peaks above 0.3 threshold
-from scipy.signal import find_peaks
 try:
+    from scipy.signal import find_peaks
     peaks, props = find_peaks(tomo, height=0.3, distance=10)
     
     print(f"\nAmbiguity height: {amb:.1f} m")
@@ -289,36 +289,26 @@ for scenario in scenarios:
 # KEY COMPARISON: Scenario 4 peaks vs ground truth
 # =============================================
 print(f"\n{'='*60}")
-print("THE ALIASING EXPLANATION")
+print("TOY ILLUSTRATION ONLY — NOT A DIAGNOSIS OF PUBLISHED IMAGES")
 print(f"{'='*60}")
 print(f"""
-With 6 COSMO-SkyMed images and baselines up to 300m:
-  - Vertical resolution: {s1['resolution']:.0f}m (can resolve King's Chamber at 43m)
-  - Ambiguity height: {s1['ambiguity']:.0f}m
+This block is the toy PSF from the parameters above, not Table 2 of
+Biondi & Malanga (2022). That table lists 12 products, not 6 images.
+The 6-baseline case is a sparse sampling sketch.
 
-The REAL features (0-140m) are genuinely detected.
-But every real feature REPEATS at intervals of {s1['ambiguity']:.0f}m:
+Toy resolution: {s1['resolution']:.0f} m
+Toy ambiguity height: {s1['ambiguity']:.0f} m
 
-  King's Chamber (43m) appears also at:
-    43 + {s1['ambiguity']:.0f} = {43 + s1['ambiguity']:.0f}m
-    43 + 2x{s1['ambiguity']:.0f} = {43 + 2*s1['ambiguity']:.0f}m
-    43 + 3x{s1['ambiguity']:.0f} = {43 + 3*s1['ambiguity']:.0f}m
-    ... and so on to any depth
+Planted scatterers repeat in this toy at intervals of {s1['ambiguity']:.0f} m.
+Example, King's Chamber height +43 m:
+    43 + {s1['ambiguity']:.0f} = {43 + s1['ambiguity']:.0f} m
+    43 + 2x{s1['ambiguity']:.0f} = {43 + 2*s1['ambiguity']:.0f} m
 
-  Surface (0m) appears also at:
-    0 + {s1['ambiguity']:.0f} = {s1['ambiguity']:.0f}m
-    0 + 2x{s1['ambiguity']:.0f} = {2*s1['ambiguity']:.0f}m
-    ... etc.
+600 m is {600/s1['ambiguity']:.1f} ambiguity periods in THIS toy.
+1200 m is {1200/s1['ambiguity']:.1f} ambiguity periods in THIS toy.
 
-  Multiple scatterers at different depths, each aliasing with
-  different phase, create a COMPLEX PATTERN that looks like
-  real subsurface architecture — columns, chambers, corridors.
-
-  Biondi's claimed depth of 600m = {600/s1['ambiguity']:.1f} ambiguity periods.
-  Biondi's claimed depth of 1200m = {1200/s1['ambiguity']:.1f} ambiguity periods.
-
-  The 'underground city' is the pyramid's own internal structure,
-  reflected {int(1200/s1['ambiguity'])}+ times down the depth axis by aliasing.
+Do not read that as proof that published deep features are aliases of
+the pyramid's chambers. The toy plants shallow scatterers by construction.
 """)
 
 # =============================================
@@ -326,8 +316,8 @@ But every real feature REPEATS at intervals of {s1['ambiguity']:.0f}m:
 # =============================================
 if HAS_MPL:
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-    fig.suptitle('Tomographic Aliasing: How Shallow Detections Create\n'
-                 'the Illusion of Deep Underground Structures', 
+    fig.suptitle('Toy PSF only: planted shallow scatterers under sparse baselines\n'
+                 '(not a reconstruction of the published images)',
                  fontsize=14, fontweight='bold')
     
     for ax, scenario in zip(axes.flat, scenarios):

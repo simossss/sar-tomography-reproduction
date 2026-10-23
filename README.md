@@ -1,68 +1,76 @@
-# Independent Reproduction Attempt: SAR Doppler Tomography for Subsurface Imaging
+# Independent assessment: single-pass SAR Doppler tomography
 
-An independent analysis of the SAR Doppler Tomography method published by Biondi & Malanga (2022) for imaging subsurface structures beneath the Great Pyramid of Giza using satellite radar.
+Manuscript draft for review of the Zenodo v1 note [10.5281/zenodo.19574701](https://zenodo.org/records/19574701). This repository revision does **not** upload a new Zenodo version and does not change the punkjazz.ai site.
 
-**Paper:** https://zenodo.org/records/19574701
+**Manuscript:** `paper/technical_note_SAR_tomography.md`  
+**Short changelog:** `CHANGELOG.md`
 
-## Summary
+Biondi & Malanga, *Remote Sensing* 2022, 14, 5231, was retracted on 10 August 2026 (*Remote Sensing* 2026, 18, 2679; [doi:10.3390/rs18162679](https://doi.org/10.3390/rs18162679)). The retraction is a status update. It is not evidence for this note’s geometry.
 
-In March 2025, claims that satellite radar had discovered underground structures beneath the Giza pyramids went viral after a podcast appearance. The underlying method was published in *Remote Sensing* (2022, 14, 5231). No independent reproduction had been attempted.
+## What v2 holds
 
-We performed the first independent analysis. Our findings:
+- A single monostatic SAR image has **no elevation aperture**. Azimuth Doppler sub-apertures are not a perpendicular baseline \(B_\perp\). The v1 claim of ~618 mm \(B_\perp\) and ~285 m single-pass elevation resolution is **withdrawn**, including the 6.6× / 13.6× comparisons and the Vesuvius ~660 m bound.
+- The 240-experiment sweep tests **this beamformer** (\(A^H Y\) on sampled columns). It does not estimate displacements by cross-correlation and does not apply \(A^\dagger Y\). It does not show that the full published chain fails. Reported v1 `SNR_peak_mean` difference: −0.021 ± 0.043 (0 of 240 above a 1.5× threshold). That figure was not recomputed here. It is not the §4.3 `SNR_energy` value (1.87 ± 0.54).
+- Sub-aperture coherence is **similar** between the Giza and Vesuvius patches (differences 0.001–0.004), consistent with spectral decorrelation.
+- The southeast control is not empty Sahara (Shabramant / settled fringe). Gran Sasso is a public claim only; this note has no Gran Sasso results.
+- Multi-pass geometry can improve elevation resolution. **X- and C-band do not reach** the Khufu chambers through intact limestone. The 15-image Sentinel-1 result is a preliminary diagnostic (pyramid–control correlation 0.9913 under simplified processing), not a physical negative baseline.
+- Section 6.3 is a toy sidelobe illustration. The retracted paper’s Table 2 lists 12 products, not 6.
 
-- **The published single-pass method has an elevation resolution of ~285 m.** The King's Chamber sits at 43 m depth — 6.6× smaller than one resolution cell. The method cannot distinguish it from the surface.
-- **A 240-experiment parameter sweep finds no difference between the pyramid and empty desert.** Mean SNR difference: -0.021 ± 0.043. Zero of 240 parameter combinations favor the pyramid.
-- **Sub-aperture coherence is identical between Giza (limestone) and Vesuvius (volcanic rock)** to three decimal places, consistent with spectral decorrelation rather than depth-dependent signal.
-- **The deep claims (600 m to 6 km) are consistent with sidelobe artifacts** from sparse kz sampling. With 6 satellite images, the beamformer produces structured features at 70-90% of peak amplitude at all depths. With 200 images, these artifacts are suppressed to 10-15%.
-- **The paper acknowledges SARPROZ**, a multi-pass interferometric tool, while describing the method as operating on a single image. These are fundamentally different techniques.
+## Titles (not yet aligned)
 
-The shallow chamber detections (20-80 m) may be real — but from standard multi-pass SAR tomography, an established technique, not from the novel single-pass method described in the paper.
+| Surface | Title |
+|---------|--------|
+| This manuscript | On the Reproducibility of Single-Pass SAR Doppler Tomography for Subsurface Imaging: An Independent Assessment |
+| Zenodo v1 record | Independent Reproduction Attempt of SAR Doppler Tomography for Subsurface Imaging of the Great Pyramid of Giza |
 
-## Repository Structure
+Use one title on the PDF and the Zenodo record when a v2 deposit is approved. This branch does not retitle the record.
+
+## Repository structure
 
 ```
-├── paper/
-│   └── technical_note_SAR_tomography.md    # Full technical note
-│
+├── paper/technical_note_SAR_tomography.md
+├── CHANGELOG.md
 ├── scripts/
-│   ├── verify_v2.py              # Core geometric proof (corrected Doppler FM rate)
-│   ├── sweep_v2.py               # 240-experiment parameter sweep (Giza vs desert)
-│   ├── fix_coherence.py          # Sub-aperture coherence (Giza vs Vesuvius)
-│   ├── step3_baselines.py        # Sentinel-1 multi-pass baseline computation
-│   ├── run_tomo.py               # Multi-pass tomographic inversion (simplified)
-│   ├── multi_site_tomo.py        # 20-site comparison (simplified)
-│   └── aliasing_simulation.py    # Sidelobe contamination PSF illustration
-│
-├── deprecated/
-│   ├── verify.py                 # v1 — contains Δx formula error (kept for transparency)
-│   ├── sweep.py                  # v1 — unused seismic_vel parameter, old formula
-│   └── tomogram_2d.py            # Produced unusable images
-│
-└── README.md
+│   ├── data_dir.py               # SAR_DATA_DIR or DATA_DIR, else ./data
+│   ├── incidence.py              # SICD incidence, else angle at the target
+│   ├── verify_v2.py              # Metadata and along-track quantities
+│   ├── sweep_v2.py               # Partial beamformer sweep
+│   ├── fix_coherence.py          # Sub-aperture coherence
+│   ├── step3_baselines.py        # Sentinel-1 baselines
+│   ├── run_tomo.py               # Preliminary multi-pass inversion
+│   ├── multi_site_tomo.py        # Preliminary multi-site comparison
+│   └── aliasing_simulation.py    # Toy PSF; no SAR data required
+└── deprecated/                   # v1 scripts kept for the old Δx formula
 ```
 
-### Script Roles
+| Script | Role |
+|--------|------|
+| `verify_v2.py` | Reads SICD metadata. Prints the withdrawn \(\Delta x\sin\Delta\theta\) scalar only as a non-result. |
+| `sweep_v2.py` | 240 combinations of this \(A^H Y\) beamformer. Not a full-chain reproduction. |
+| `fix_coherence.py` | Local-window sub-aperture coherence. |
+| `aliasing_simulation.py` | Toy PSF. A 6-baseline case is not “Table 2.” |
+| `step3_baselines.py`, `run_tomo.py`, `multi_site_tomo.py` | Preliminary Sentinel-1 geometry and inversion. Missing coregistration. |
 
-| Script | Type | What it does |
-|--------|------|-------------|
-| `verify_v2.py` | **First-principles proof** | Extracts SAR metadata, computes Doppler FM rate, derives elevation resolution (~285 m) from kz geometry |
-| `sweep_v2.py` | **Empirical null test** | Sweeps 240 parameter combinations, compares pyramid vs desert control. Same general processing family as published method, not exact replication |
-| `fix_coherence.py` | **Supporting evidence** | Measures sub-aperture coherence decay. Consistent with spectral decorrelation, identical between geologically distinct sites |
-| `aliasing_simulation.py` | **PSF illustration** | Synthetic toy model showing how 6 images produce sidelobes at all depths while 200 images suppress them |
-| `step3_baselines.py` | **Approximate geometry** | Computes Sentinel-1 perpendicular baselines from orbit state vectors |
-| `run_tomo.py` | **Preliminary** | Multi-pass tomographic inversion without full InSAR coregistration (see caveats in paper) |
-| `multi_site_tomo.py` | **Preliminary** | 20-site comparison without full coregistration (see caveats in paper) |
+## Data
 
-## Data Sources (All Free)
+`SAR_DATA_DIR` (or `DATA_DIR`) points at the data root. The default is `<repo>/data`.
 
-### Umbra X-band Spotlight SICD
-- **Source:** AWS Open Data Program, `s3://umbra-open-data-catalog/`
-- **License:** CC-BY 4.0
-- **Scenes used:**
-  - Giza: `5aa49658-ecf9-4504-afee-281f43fb076e` (UMBRA-04, 2023-03-08)
-  - Vesuvius: `a73184a7-2b25-4dfd-b750-1da35653be44` (UMBRA-05, 2023-11-15)
+Umbra X-band Spotlight SICD, AWS Open Data, CC-BY 4.0:
 
-Download with AWS CLI (no account required):
+- Giza: `5aa49658-ecf9-4504-afee-281f43fb076e` (UMBRA-04, 2023-03-08)
+- Vesuvius: `a73184a7-2b25-4dfd-b750-1da35653be44` (UMBRA-05, 2023-11-15)
+
+Expected paths:
+
+```
+$SAR_DATA_DIR/umbra/giza/2023-03-08-07-57-53_UMBRA-04_SICD.nitf
+$SAR_DATA_DIR/umbra/vesuvius/2023-11-15-19-47-28_UMBRA-05_SICD.nitf
+$SAR_DATA_DIR/sentinel1_giza/          # Sentinel-1A SLC zips
+$SAR_DATA_DIR/sentinel1_giza_safe/     # extracted SAFE trees
+```
+
+Sentinel-1A IW SLC, Track 58 ascending, January–December 2023, from the Alaska Satellite Facility. The Copernicus Open Access Hub was retired in October 2023. Product IDs are not in this repo.
+
 ```bash
 aws s3 cp --no-sign-request \
   s3://umbra-open-data-catalog/sar-data/tasks/5aa49658-ecf9-4504-afee-281f43fb076e/ \
@@ -73,86 +81,54 @@ aws s3 cp --no-sign-request \
   ./data/umbra/vesuvius/ --recursive
 ```
 
-### Sentinel-1 C-band IW SLC
-- **Source:** Alaska Satellite Facility (https://search.asf.alaska.edu/)
-- **Account required:** Free Earthdata account (https://urs.earthdata.nasa.gov/)
-- **Track:** 58 Ascending
-- **Period:** January – December 2023
-- **Images:** 15 acquisitions, ~82 GB total
-- **Subswath:** IW2 covers Giza (not IW1)
+## Running the scripts
 
-Search parameters for ASF:
-```
-Platform: Sentinel-1A
-Beam Mode: IW
-Flight Direction: Ascending
-Relative Orbit: 58
-Start Date: 2023-01-01
-End Date: 2023-12-31
-Processing Level: SLC
-```
-
-## Reproducing the Results
-
-### Requirements
 ```bash
 pip install sarpy numpy scipy matplotlib tifffile
 ```
 
-### Core analysis (single-pass geometry)
+Without the local SLC files, the data scripts exit and do not invent measurements:
+
 ```bash
-# Requires Umbra Giza + Vesuvius SICD files
-python scripts/verify_v2.py
-python scripts/fix_coherence.py
-python scripts/sweep_v2.py
+python3 scripts/incidence.py          # synthetic triangle self-check
+python3 scripts/verify_v2.py          # exit 2 if the Umbra SICDs are absent
+python3 scripts/sweep_v2.py           # exit 2 if the Giza SICD is absent
+python3 scripts/fix_coherence.py      # exit 2 if the SICDs are absent
+python3 scripts/aliasing_simulation.py  # toy only; no SAR scene
 ```
 
-`verify_v2.py` runs in seconds. `fix_coherence.py` takes ~1 minute. `sweep_v2.py` takes ~20-30 minutes (240 experiments on 800×800 patches).
+`sweep_v2.py` is the long run (240 experiments) once a SICD is present. A run with the incidence fix is a new execution, not a reissue of the v1 SNR table, and it still is not the published chain.
 
-### Multi-pass analysis (Sentinel-1)
-```bash
-# Requires 15 Sentinel-1 SLC files downloaded and extracted
-python scripts/step3_baselines.py
-python scripts/run_tomo.py
-python scripts/multi_site_tomo.py
-```
+## Numbers kept from v1 (not re-measured)
 
-### Sidelobe illustration (no data required)
-```bash
-python scripts/aliasing_simulation.py
-```
-
-## Key Numbers
-
-| Quantity | Value |
-|----------|-------|
-| Single-pass B_⊥ per sub-aperture | 618 mm |
-| Single-pass elevation resolution | 285 m |
-| King's Chamber depth | 43 m |
-| Resolution / target ratio | 6.6× (unresolvable) |
-| Sweep: Giza mean SNR | 1.118 ± 0.077 |
-| Sweep: Desert mean SNR | 1.139 ± 0.082 |
-| Sweep: experiments favoring pyramid | 0 of 240 |
-| Coherence (Giza, distance 1) | 0.443 |
-| Coherence (Vesuvius, distance 1) | 0.446 |
-| Multi-pass 15-image resolution | 64.2 m |
-| Multi-pass: pyramid-desert correlation | 0.991 |
+| Quantity | Value | Status |
+|----------|-------|--------|
+| Single-pass elevation resolution | ~285 m | **Withdrawn** |
+| Single-pass \(B_\perp\) per sub-aperture | ~618 mm | **Withdrawn** as an elevation baseline |
+| §4.3 `SNR_energy` (Giza) | 1.87 ± 0.54 | v1 partial chain; not re-run |
+| §5 mean `SNR_peak_mean` difference | −0.021 ± 0.043 | v1 beamformer; not re-run |
+| Coherence, SA distance 1 | 0.443 (Giza), 0.446 (Vesuvius) | similar, not identical |
+| 15-image elevation resolution | 64.2 m | multi-pass geometry only |
+| Pyramid–control correlation | 0.9913 | preliminary; control is not empty desert |
 
 ## Citation
 
+Manuscript title and Zenodo v1 title differ. Until they are aligned:
+
 ```
-Pomposi, S. "Independent Reproduction Attempt of SAR Doppler Tomography 
-for Subsurface Imaging of the Great Pyramid of Giza." Zenodo, 2026. 
-DOI: 10.5281/zenodo.19574701
+Pomposi, S. "On the Reproducibility of Single-Pass SAR Doppler Tomography
+for Subsurface Imaging: An Independent Assessment." Manuscript draft, 2026.
+Zenodo v1: 10.5281/zenodo.19574701
 ```
 
 ## References
 
-1. Biondi, F.; Malanga, C. "Synthetic Aperture Radar Doppler Tomography Reveals Details of Undiscovered High-Resolution Internal Structure of the Great Pyramid of Giza." *Remote Sensing* 2022, 14, 5231.
-2. Reigber, A.; Moreira, A. "First Demonstration of Airborne SAR Tomography Using Multibaseline L-Band Data." *IEEE TGRS* 2000.
-3. Zhu, X.X.; Bamler, R. "Tomographic SAR Inversion by L1-Norm Regularization." *IEEE TGRS* 2010.
-4. Morishima, K. et al. "Discovery of a Big Void in Khufu's Pyramid by Observation of Cosmic-Ray Muons." *Nature* 2017.
-5. Perissin, D. et al. "The SARPROZ InSAR tool." *ISRSE* 2011.
+1. Biondi, F.; Malanga, C. *Remote Sensing* 2022, 14, 5231. **Retracted** 2026-08-10. Notice: doi:10.3390/rs18162679.
+2. Biondi, F. *Remote Sensing* 2022, 14, 3828. doi:10.3390/rs14153828. Published volcano imaging is on the order of ~3 km.
+3. Reigber, A.; Moreira, A. *IEEE TGRS* 2000.
+4. Zhu, X.X.; Bamler, R. *IEEE TGRS* 2010.
+5. Morishima, K. et al. *Nature* 2017.
+6. Perissin, D. et al. SARPROZ. ISRSE 2011.
 
 ## License
 

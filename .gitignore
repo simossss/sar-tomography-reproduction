@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/
+aliasing_demo.png
+aliasing_data.json
+sweep_v2_results.json
+baselines.json
+tomo_results.json
+multi_site_results.json

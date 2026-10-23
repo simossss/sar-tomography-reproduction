@@ -14,14 +14,31 @@ Requirements:
 """
 
 import numpy as np
-import sarpy.io.complex as sicd_io
-from scipy.ndimage import uniform_filter
 import os
+import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from data_dir import data_dir
+
+DATA_DIR = data_dir()
 FILES = {
     "giza": os.path.join(DATA_DIR, "umbra/giza/2023-03-08-07-57-53_UMBRA-04_SICD.nitf"),
     "vesuvius": os.path.join(DATA_DIR, "umbra/vesuvius/2023-11-15-19-47-28_UMBRA-05_SICD.nitf"),
 }
+
+
+def _imports():
+    global _sicd_io, _uniform_filter
+    try:
+        import sarpy.io.complex as sicd_io
+        from scipy.ndimage import uniform_filter
+    except ImportError:
+        print("ERROR: pip install sarpy numpy scipy")
+        print("No coherence was measured.")
+        sys.exit(1)
+    _sicd_io = sicd_io
+    _uniform_filter = uniform_filter
+    return sicd_io, uniform_filter
 
 
 def local_coherence(img1, img2, window=5):
@@ -30,6 +47,7 @@ def local_coherence(img1, img2, window=5):
     Computes coherence in local windows, returns the coherence map.
     This is the textbook formula used in all SAR interferometry.
     """
+    uniform_filter = _uniform_filter
     cross = uniform_filter(np.real(img1 * np.conj(img2)), window) + \
             1j * uniform_filter(np.imag(img1 * np.conj(img2)), window)
     pow1 = uniform_filter(np.abs(img1)**2, window)
@@ -53,6 +71,7 @@ def measure_coherence(filepath, n_sub=30, patch=1000, window=5):
     print(f"N_sub={n_sub}, patch={patch}x{patch}, window={window}x{window}")
     print(f"{'='*60}")
 
+    sicd_io, _uniform = _imports()
     reader = sicd_io.open(filepath)
     meta = reader.sicd_meta
     nrows = meta.ImageData.NumRows
@@ -195,6 +214,15 @@ if __name__ == "__main__":
     print("SAR DOPPLER SUB-APERTURE COHERENCE VERIFICATION")
     print("Using local-window coherence estimator (standard InSAR method)")
     print("=" * 60)
+    print(f"DATA_DIR = {DATA_DIR}")
+
+    missing = [path for path in FILES.values() if not os.path.isfile(path)]
+    if missing:
+        print("\nLocal SICD files are absent. No coherence was measured.")
+        for path in missing:
+            print(f"  missing: {path}")
+        print("Set SAR_DATA_DIR (or DATA_DIR). v1 coherence numbers are not recomputed.")
+        sys.exit(2)
 
     # Test 1: Giza and Vesuvius with 30 sub-apertures
     for name, path in FILES.items():
@@ -219,20 +247,13 @@ if __name__ == "__main__":
         print(f"{ns:6d} | {c:15.4f}")
 
     print(f"\n{'='*60}")
-    print("KZ PHYSICS REMINDER (from verify_v2.py — corrected formula)")
+    print("INTERPRETATION")
     print(f"{'='*60}")
-    print("B_perp per sub-aperture:  618 mm")
-    print("Elevation resolution:     285 m")
-    print("Ambiguity height:         8,559 m")
+    print("The v1 single-pass elevation figures (~618 mm, ~285 m, ~8559 m)")
+    print("are withdrawn. Azimuth sub-apertures are not an elevation aperture.")
+    print("King's Chamber is ~43 m above the pavement, not a depth below grade.")
     print("")
-    print("King's Chamber depth:     43 m")
-    print("Magma chamber depth:      6,000 m")
-    print("LNGS depth:               1,400 m")
-    print("")
-    print("INTERPRETATION: The monotonic coherence drop with sub-aperture")
-    print("distance, identical between geologically distinct sites, is")
-    print("consistent with spectral decorrelation (a geometric property of")
-    print("the imaging system). This supports the conclusion that the")
-    print("sub-aperture decomposition does not encode target-dependent depth")
-    print("information, though it does not rule out a small contribution")
-    print("from target-dependent structure below the noise floor.")
+    print("A monotonic coherence drop that is similar across geologically")
+    print("distinct sites is consistent with spectral decorrelation. Similarity")
+    print("is not identity, and it does not by itself rule out a small")
+    print("target-dependent contribution.")
