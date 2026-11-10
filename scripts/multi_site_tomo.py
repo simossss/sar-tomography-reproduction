@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 """
-multi_site_tomo.py — Run multi-pass tomography on 20 locations from the same
-Sentinel-1 data. Produces a comparison grid showing that every location
-generates similar "depth structure" regardless of what's actually underground.
+multi_site_tomo.py — Multi-pass inversion at up to 20 listed locations in the
+same Sentinel-1 stack (the note reports five).
+
+Known limits (v3, see scripts/noise_controls.py and Section 5.3 of the note):
+- Pixels are taken from annotation grids with no interferometric
+  coregistration and no flat-earth or topographic phase removal.
+- The untruncated pseudo-inverse amplifies the smallest singular vector of the
+  steering matrix. Random complex numbers reproduce the v1 profile table, and
+  a scatterer planted at +43 m with 40 dB per-image SNR is recovered in
+  under 1% of trials.
+- Similar profiles across sites therefore say nothing about those sites.
+The script is kept so the v1 numbers can be traced. It was not re-run for v3.
 
 Usage:
     python3 multi_site_tomo.py
@@ -219,12 +228,10 @@ else:
     print(f"  Max correlation:  {np.max(corrs):.4f}")
     
     if np.mean(corrs) > 0.9:
-        print(f"\n  CONCLUSION: All {len(results)} sites produce nearly identical")
-        print(f"  depth profiles (mean correlation {np.mean(corrs):.3f}).")
-        print(f"  The tomographic output is dominated by the inversion geometry,")
-        print(f"  not subsurface structure. The method generates 'underground")
-        print(f"  structures' everywhere — pyramids, desert, farmland, river,")
-        print(f"  city streets — all look the same.")
+        print(f"\n  NOTE: All {len(results)} sites give nearly identical profiles")
+        print(f"  (mean correlation {np.mean(corrs):.3f}). Random input gives the same")
+        print(f"  profiles through this inversion (scripts/noise_controls.py), so")
+        print(f"  the similarity is a property of the inversion, not of the sites.")
 
 # =============================================
 # Save amplitude at key depths for all sites

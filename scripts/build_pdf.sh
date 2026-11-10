@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Build paper/technical_note_SAR_tomography.pdf from the v2 manuscript.
+# Build paper/technical_note_SAR_tomography.pdf from the manuscript.
 # Requires pandoc and XeLaTeX or LuaLaTeX (Unicode text and math).
-# Does not upload to Zenodo and does not change the Zenodo record title.
-# CHANGELOG.md: align that title with the manuscript at upload, not in this draft.
+# Does not upload anything.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -63,7 +62,7 @@ def yq(value: str) -> str:
             "---",
             f"title: {yq(title)}",
             'author-meta: "Simone Pomposi"',
-            'subject: "Version 2 manuscript draft (2026-10-23). Zenodo record title unchanged."',
+            'subject: "Version 3, November 2026"',
             "keywords:",
             "  - SAR tomography",
             "  - single-pass Doppler",
@@ -90,11 +89,11 @@ cat > "${BUILD}/header.tex" <<'EOF'
 \fancyhf{}
 \fancyhead[L]{\small Single-pass SAR Doppler tomography}
 \fancyhead[R]{\small\thepage}
-\fancyfoot[C]{\footnotesize v2 manuscript draft, 23 October 2026}
+\fancyfoot[C]{\footnotesize Version 3, November 2026}
 \renewcommand{\headrulewidth}{0.3pt}
 \fancypagestyle{plain}{%
   \fancyhf{}%
-  \fancyfoot[L]{\footnotesize v2 manuscript draft, 23 October 2026}%
+  \fancyfoot[L]{\footnotesize Version 3, November 2026}%
   \fancyfoot[R]{\thepage}%
   \renewcommand{\headrulewidth}{0pt}%
 }
@@ -264,7 +263,7 @@ pandoc "${BUILD}/body.md" \
   -V mainfontoptions="Numbers=Lining" \
   -V mathfont="TeX Gyre Pagella Math" \
   -V monofont="TeX Gyre Cursor" \
-  -V monofontoptions="Scale=0.86" \
+  -V monofontoptions="Scale=0.86,HyphenChar=None" \
   -V colorlinks=true \
   -V linkcolor=MidnightBlue \
   -V urlcolor=MidnightBlue \
@@ -296,7 +295,7 @@ if command -v pdftotext >/dev/null 2>&1; then
     "10.3390/rs18162679" \
     "SNR_peak_mean" \
     "285" \
-    "No Zenodo upload"
+    "Version 3"
   do
     if ! grep -q -F "${needle}" <<<"${text}"; then
       echo "PDF text is missing: ${needle}" >&2

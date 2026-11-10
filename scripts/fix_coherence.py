@@ -3,8 +3,15 @@
 fix_coherence.py — Measure interferometric coherence between Doppler sub-apertures.
 
 Uses the standard SAR local-window coherence estimator (not global averaging,
-which produces meaningless zeros). Tests whether sub-aperture decorrelation
-is spectral (geometric) or depth-dependent (signal).
+which produces meaningless zeros).
+
+Known limits (v3, see scripts/noise_controls.py and Section 5.1 of the note):
+- The N-way sub-apertures cut here are disjoint slices of the spectrum, not the
+  overlapping sub-apertures (bandwidth ratio 0.5) of the method under review.
+- The carrier offset between two slices is not removed before the 5x5 window.
+- Random noise reproduces the v1 coherence table to about 0.01. The table is
+  the estimator's bias floor and says nothing about the scene.
+The script is kept so the v1 numbers can be traced. It was not re-run for v3.
 
 Usage:
     python3 fix_coherence.py
@@ -175,33 +182,13 @@ def measure_coherence(filepath, n_sub=30, patch=1000, window=5):
     # INTERPRETATION
     # =============================================
     overall = np.mean(mean_cohs)
-    print(f"\n*** INTERPRETATION ***")
-    if overall > 0.95:
-        verdict = "IDENTICAL — ZERO depth discrimination"
-    elif overall > 0.85:
-        verdict = "VERY HIGH — negligible depth discrimination"
-    elif overall > 0.7:
-        verdict = "HIGH — minimal depth discrimination"
-    elif overall > 0.5:
-        verdict = "MODERATE — some depth info may exist"
-    elif overall > 0.3:
-        verdict = "LOW — meaningful differences between sub-apertures"
-    else:
-        verdict = "VERY LOW — strong decorrelation between sub-apertures"
-
+    print(f"\n*** HOW TO READ THIS ***")
     print(f"  Overall coherence: {overall:.4f}")
-    print(f"  Verdict: {verdict}")
-    print(f"")
-    print(f"  NOTE: High coherence (>0.9) means sub-apertures see the same thing.")
-    print(f"  This CONFIRMS the kz calculation: B_perp is too small for depth.")
-    print(f"  Low coherence (<0.5) could mean either:")
-    print(f"    a) Real depth-dependent signal (good), OR")
-    print(f"    b) Speckle decorrelation from non-overlapping bands (bad)")
-    print(f"  To interpret: check if coherence DROPS with SA distance.")
-    print(f"  If it drops monotonically and identically across sites:")
-    print(f"    consistent with spectral decorrelation (geometric, not geological).")
-    print(f"  If it differs between geologically distinct sites:")
-    print(f"    may indicate target-dependent depth information.")
+    print(f"  These sub-apertures are disjoint spectral slices. For speckle they are")
+    print(f"  uncorrelated, so the values printed above are the bias floor of a 5x5")
+    print(f"  estimator, shaped by the carrier offset between slices. Random noise")
+    print(f"  gives the same table (scripts/noise_controls.py). Do not read the")
+    print(f"  numbers as evidence about the scene or about depth.")
 
     return overall
 
