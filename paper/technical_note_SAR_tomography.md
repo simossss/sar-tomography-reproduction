@@ -2,6 +2,7 @@
 
 **Author:** Simone Pomposi, Independent Researcher  
 **Version:** 3, November 2026  
+**DOI:** [10.5281/zenodo.24112543](https://doi.org/10.5281/zenodo.24112543)  
 **Earlier versions:** v1, April 2026, [10.5281/zenodo.19574701](https://doi.org/10.5281/zenodo.19574701); v2, October 2026, [10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771)  
 **Code:** <https://github.com/simossss/sar-tomography-reproduction>
 

@@ -1,6 +1,6 @@
 # Independent assessment: single-pass SAR Doppler tomography
 
-Version 3 of the technical note, November 2026.
+Version 3 of the technical note, November 2026. Zenodo: [10.5281/zenodo.24112543](https://doi.org/10.5281/zenodo.24112543).
 
 **Manuscript:** `paper/technical_note_SAR_tomography.md`
 **PDF:** `paper/technical_note_SAR_tomography.pdf` (rebuild with `scripts/build_pdf.sh`; pandoc and XeLaTeX or LuaLaTeX)
@@ -96,6 +96,7 @@ pip install sarpy tifffile matplotlib
 ```
 Pomposi, S. "On the Reproducibility of Single-Pass SAR Doppler Tomography
 for Subsurface Imaging: An Independent Assessment." Version 3. Zenodo, 2026.
+https://doi.org/10.5281/zenodo.24112543
 ```
 
 ## License
