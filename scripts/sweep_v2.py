@@ -20,6 +20,16 @@ Geometry notes:
 The southeast patch offsets are not geolocated in this script. v1 called
 that patch empty desert; that label is withdrawn (Shabramant / settled fringe).
 
+Known limits (v3, see scripts/noise_controls.py and Section 5.2 of the note):
+- run_experiment transforms data[:, col], a line along the SICD row dimension.
+  load_data and fix_coherence.py treat the column dimension as azimuth, so by
+  the repository's own convention these sub-bands are range sub-bands, not
+  Doppler sub-apertures. This could not be checked against the scene for v3.
+- Random noise through this sweep reproduces the v1 summary statistics.
+- A bright scatterer on the sampled line can trip the 1.5x criterion. Its
+  score depends on its position along the line, not on height or depth.
+The script is kept so the v1 numbers can be traced. It was not re-run for v3.
+
 Usage:
     SAR_DATA_DIR=/path/to/data python3 scripts/sweep_v2.py
 """

@@ -177,12 +177,10 @@ if 'pyramid' in all_results and 'desert' in all_results:
     diff = np.mean(np.abs(p - d))
     print(f"\nPyramid vs Desert correlation: {corr:.4f}")
     print(f"Mean absolute difference: {diff:.4f}")
-    if corr > 0.9:
-        print("CONCLUSION: Profiles are nearly identical — no subsurface detection")
-    elif corr < 0.5:
-        print("CONCLUSION: Profiles differ significantly — possible subsurface signal")
-    else:
-        print("CONCLUSION: Moderate difference — inconclusive")
+    # v3: no conclusion is drawn from this number. Random input through the same
+    # untruncated pseudo-inverse gives correlations above 0.98 between any two
+    # profiles (scripts/noise_controls.py, Section 5.3 of the note).
+    print("NOTE: this correlation is a property of the inversion, not of the sites.")
 
 # Save
 with open('tomo_results.json', 'w') as f:

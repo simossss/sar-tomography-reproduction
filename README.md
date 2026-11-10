@@ -1,30 +1,23 @@
 # Independent assessment: single-pass SAR Doppler tomography
 
-Zenodo v2 is published as [10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771) under the manuscript title. The v1 record remains [10.5281/zenodo.19574701](https://zenodo.org/records/19574701). This repository does not upload a further Zenodo version and does not change the punkjazz.ai site.
+Version 3 of the technical note, November 2026. Zenodo: [10.5281/zenodo.24112543](https://doi.org/10.5281/zenodo.24112543).
 
-**Manuscript:** `paper/technical_note_SAR_tomography.md`  
-**PDF:** `paper/technical_note_SAR_tomography.pdf` (rebuild with `scripts/build_pdf.sh`; pandoc + XeLaTeX or LuaLaTeX)  
-**Short changelog:** `CHANGELOG.md`
+**Manuscript:** `paper/technical_note_SAR_tomography.md`
+**PDF:** `paper/technical_note_SAR_tomography.pdf` (rebuild with `scripts/build_pdf.sh`; pandoc and XeLaTeX or LuaLaTeX)
+**Changes:** `CHANGELOG.md`, and Appendix A of the note
 
-Biondi & Malanga, *Remote Sensing* 2022, 14, 5231, was retracted on 10 August 2026 (*Remote Sensing* 2026, 18, 2679; [doi:10.3390/rs18162679](https://doi.org/10.3390/rs18162679)). The retraction is a status update. It is not evidence for this note’s geometry.
+Earlier versions on Zenodo: v1 [10.5281/zenodo.19574701](https://doi.org/10.5281/zenodo.19574701) (April 2026), v2 [10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771) (October 2026).
 
-## What v2 holds
+The paper under review, Biondi & Malanga, *Remote Sensing* 2022, 14, 5231, was retracted on 10 August 2026 (*Remote Sensing* 2026, 18, 2679; [doi:10.3390/rs18162679](https://doi.org/10.3390/rs18162679)). The retraction is a change of status. It is not evidence for this note.
 
-- A single monostatic SAR image has **no elevation aperture**. Azimuth Doppler sub-apertures are not a perpendicular baseline \(B_\perp\). The v1 claim of ~618 mm \(B_\perp\) and ~285 m single-pass elevation resolution is **withdrawn**, including the 6.6× / 13.6× comparisons and the Vesuvius ~660 m bound.
-- The 240-experiment sweep tests **this beamformer** (\(A^H Y\) on sampled columns). It does not estimate displacements by cross-correlation and does not apply \(A^\dagger Y\). It does not show that the full published chain fails. Reported v1 `SNR_peak_mean` difference: −0.021 ± 0.043 (0 of 240 above a 1.5× threshold). That figure was not recomputed here. It is not the §4.3 `SNR_energy` value (1.87 ± 0.54).
-- Sub-aperture coherence is **similar** between the Giza and Vesuvius patches (differences 0.001–0.004), consistent with spectral decorrelation.
-- The southeast control is not empty Sahara (Shabramant / settled fringe). Gran Sasso is a public claim only; this note has no Gran Sasso results.
-- Multi-pass geometry can improve elevation resolution. **X- and C-band do not reach** the Khufu chambers through intact limestone. The 15-image Sentinel-1 result is a preliminary diagnostic (pyramid–control correlation 0.9913 under simplified processing), not a physical negative baseline.
-- Section 6.3 is a toy sidelobe illustration. The retracted paper’s Table 2 lists 12 products, not 6.
+## What version 3 says
 
-## Titles
+- **Geometry.** One monostatic SAR image has no elevation aperture. Azimuth Doppler sub-apertures are not a perpendicular baseline. The v1 figures built on such a baseline (618 mm, 285 m, 8,559 m, 660 m) stay withdrawn.
+- **Sensitivity (new).** The vibration series behind the published interior image has a scale of 1e-7 m. At X-band that is 4e-5 rad of phase, 250 to 2,500 times below the phase noise of one measurement, and at the pyramid's measured 2.3 Hz it is 0.0014 mm/s, about 700 times below the error of the validated spaceborne measurement of this kind. The 0.92 m resolution comes from a chosen frequency of 12,500 Hz; the printed arithmetic uses 25,000 Hz and twice the stated aperture, and the arXiv preprint prints 3.71 m.
+- **Our own tests, with controls (new).** Random input reproduces the coherence table, the 240-run sweep summary and the 15-image inversion table of v1. Planted targets show what each test could have detected: nothing about height or depth. All four empirical tests are withdrawn as evidence.
+- **Multi-pass.** Real baselines give elevation resolution (64.2 m for the 15-image Sentinel-1 stack). X- and C-band do not reach the chambers through intact limestone. Sparse stacks produce deep sidelobes as strong as the scatterers that cause them.
 
-| Surface | Title |
-|---------|--------|
-| Manuscript, PDF, and Zenodo v2 ([10.5281/zenodo.23593771](https://doi.org/10.5281/zenodo.23593771)) | On the Reproducibility of Single-Pass SAR Doppler Tomography for Subsurface Imaging: An Independent Assessment |
-| Zenodo v1 record | Independent Reproduction Attempt of SAR Doppler Tomography for Subsurface Imaging of the Great Pyramid of Giza |
-
-v2 already uses the manuscript title. This branch does not edit the Zenodo record.
+This is not a reproduction of the published processing chain. For one with controls, see Foreman (2026), <https://github.com/Hassanforeman/subsurface-sar-tomo>. For an audit of v1 of this repository, see Pastore (2026), [doi:10.5281/zenodo.21965821](https://doi.org/10.5281/zenodo.21965821); the note answers it point by point in Section 7.3.
 
 ## Repository structure
 
@@ -33,37 +26,42 @@ v2 already uses the manuscript title. This branch does not edit the Zenodo recor
 ├── paper/technical_note_SAR_tomography.pdf
 ├── CHANGELOG.md
 ├── scripts/
+│   ├── sensitivity_budget.py     # Section 4; no data needed
+│   ├── noise_controls.py         # Section 5; no data needed
+│   ├── sidelobe_toy.py           # Section 6.3; no data needed
 │   ├── build_pdf.sh              # pandoc + XeLaTeX/LuaLaTeX
 │   ├── data_dir.py               # SAR_DATA_DIR or DATA_DIR, else ./data
 │   ├── incidence.py              # SICD incidence, else angle at the target
-│   ├── verify_v2.py              # Metadata and along-track quantities
-│   ├── sweep_v2.py               # Partial beamformer sweep
-│   ├── fix_coherence.py          # Sub-aperture coherence
-│   ├── step3_baselines.py        # Sentinel-1 baselines
-│   ├── run_tomo.py               # Preliminary multi-pass inversion
-│   ├── multi_site_tomo.py        # Preliminary multi-site comparison
-│   └── aliasing_simulation.py    # Toy PSF; no SAR data required
-└── deprecated/                   # v1 scripts kept for the old Δx formula
+│   ├── verify_v2.py              # SICD metadata (needs data)
+│   ├── fix_coherence.py          # v1 coherence table (needs data)
+│   ├── sweep_v2.py               # v1 sweep (needs data)
+│   ├── step3_baselines.py        # Sentinel-1 baselines (needs data)
+│   ├── run_tomo.py               # v1 multi-pass inversion (needs data)
+│   └── multi_site_tomo.py        # v1 multi-site inversion (needs data)
+└── deprecated/                   # v1 scripts, including aliasing_simulation.py
 ```
 
-| Script | Role |
-|--------|------|
-| `verify_v2.py` | Reads SICD metadata. Prints the withdrawn \(\Delta x\sin\Delta\theta\) scalar only as a non-result. |
-| `sweep_v2.py` | 240 combinations of this \(A^H Y\) beamformer. Not a full-chain reproduction. |
-| `fix_coherence.py` | Local-window sub-aperture coherence. |
-| `aliasing_simulation.py` | Toy PSF. A 6-baseline case is not “Table 2.” |
-| `step3_baselines.py`, `run_tomo.py`, `multi_site_tomo.py` | Preliminary Sentinel-1 geometry and inversion. Missing coregistration. |
+## Running the scripts that need no data
 
-## Data
+```bash
+pip install numpy scipy
+python3 scripts/sensitivity_budget.py   # seconds
+python3 scripts/noise_controls.py       # about four minutes
+python3 scripts/sidelobe_toy.py         # under a minute
+```
+
+Seeds are fixed, so the printed numbers match the note.
+
+## The data scripts
+
+They are kept so the v1 numbers can be traced. Each states its known limits in its header. They were not re-run for v2 or v3, because the scene files used for v1 were not retained. Without local data they exit with a message and print no measurements.
 
 `SAR_DATA_DIR` (or `DATA_DIR`) points at the data root. The default is `<repo>/data`.
 
-Umbra X-band Spotlight SICD, AWS Open Data, CC-BY 4.0:
+Umbra X-band spotlight SICD, AWS Open Data, CC BY 4.0:
 
 - Giza: `5aa49658-ecf9-4504-afee-281f43fb076e` (UMBRA-04, 2023-03-08)
 - Vesuvius: `a73184a7-2b25-4dfd-b750-1da35653be44` (UMBRA-05, 2023-11-15)
-
-Expected paths:
 
 ```
 $SAR_DATA_DIR/umbra/giza/2023-03-08-07-57-53_UMBRA-04_SICD.nitf
@@ -72,66 +70,36 @@ $SAR_DATA_DIR/sentinel1_giza/          # Sentinel-1A SLC zips
 $SAR_DATA_DIR/sentinel1_giza_safe/     # extracted SAFE trees
 ```
 
-Sentinel-1A IW SLC, Track 58 ascending, January–December 2023, from the Alaska Satellite Facility. The Copernicus Open Access Hub was retired in October 2023. Product IDs are not in this repo.
+Sentinel-1A IW SLC, Track 58 ascending, January to December 2023, from the Alaska Satellite Facility. Product IDs were not recorded.
 
 ```bash
 aws s3 cp --no-sign-request \
   s3://umbra-open-data-catalog/sar-data/tasks/5aa49658-ecf9-4504-afee-281f43fb076e/ \
   ./data/umbra/giza/ --recursive
-
-aws s3 cp --no-sign-request \
-  s3://umbra-open-data-catalog/sar-data/tasks/a73184a7-2b25-4dfd-b750-1da35653be44/ \
-  ./data/umbra/vesuvius/ --recursive
+pip install sarpy tifffile matplotlib
 ```
 
-## Running the scripts
+## Status of the v1 numbers
 
-```bash
-pip install sarpy numpy scipy matplotlib tifffile
-```
-
-Without the local SLC files, the data scripts exit and do not invent measurements:
-
-```bash
-python3 scripts/incidence.py          # synthetic triangle self-check
-python3 scripts/verify_v2.py          # exit 2 if the Umbra SICDs are absent
-python3 scripts/sweep_v2.py           # exit 2 if the Giza SICD is absent
-python3 scripts/fix_coherence.py      # exit 2 if the SICDs are absent
-python3 scripts/aliasing_simulation.py  # toy only; no SAR scene
-```
-
-`sweep_v2.py` is the long run (240 experiments) once a SICD is present. A run with the incidence fix is a new execution, not a reissue of the v1 SNR table, and it still is not the published chain.
-
-## Numbers kept from v1 (not re-measured)
-
-| Quantity | Value | Status |
-|----------|-------|--------|
-| Single-pass elevation resolution | ~285 m | **Withdrawn** |
-| Single-pass \(B_\perp\) per sub-aperture | ~618 mm | **Withdrawn** as an elevation baseline |
-| §4.3 `SNR_energy` (Giza) | 1.87 ± 0.54 | v1 partial chain; not re-run |
-| §5 mean `SNR_peak_mean` difference | −0.021 ± 0.043 | v1 beamformer; not re-run |
-| Coherence, SA distance 1 | 0.443 (Giza), 0.446 (Vesuvius) | similar, not identical |
-| 15-image elevation resolution | 64.2 m | multi-pass geometry only |
-| Pyramid–control correlation | 0.9913 | preliminary; control is not empty desert |
+| Quantity | Value | Status in v3 |
+|----------|-------|--------------|
+| Single-pass elevation resolution | ~285 m | Withdrawn (v2) |
+| Single-pass baseline per sub-aperture | ~618 mm | Withdrawn (v2) |
+| Coherence at sub-aperture distance 1 | 0.443 Giza, 0.446 Vesuvius | Withdrawn. Noise gives 0.443. |
+| Fixed-parameter `SNR_energy` | 1.87 ± 0.54 | Withdrawn. No script in the repository computes it as described. |
+| Sweep, mean `SNR_peak_mean` difference | −0.021 ± 0.043, 0 of 240 above 1.5x | Withdrawn. Noise against noise gives +0.028 ± 0.048, 0 of 240. |
+| Pyramid and control profile correlation | 0.9913 | Withdrawn. Random input gives a median of 0.9995. |
+| 15-image elevation resolution | 64.2 m | Kept. Orbit geometry only. |
 
 ## Citation
 
 ```
 Pomposi, S. "On the Reproducibility of Single-Pass SAR Doppler Tomography
-for Subsurface Imaging: An Independent Assessment." Zenodo, 2026.
-https://doi.org/10.5281/zenodo.23593771
+for Subsurface Imaging: An Independent Assessment." Version 3. Zenodo, 2026.
+https://doi.org/10.5281/zenodo.24112543
 ```
-
-## References
-
-1. Biondi, F.; Malanga, C. *Remote Sensing* 2022, 14, 5231. **Retracted** 2026-08-10. Notice: doi:10.3390/rs18162679.
-2. Biondi, F. *Remote Sensing* 2022, 14, 3828. doi:10.3390/rs14153828. Published volcano imaging is on the order of ~3 km.
-3. Reigber, A.; Moreira, A. *IEEE TGRS* 2000.
-4. Zhu, X.X.; Bamler, R. *IEEE TGRS* 2010.
-5. Morishima, K. et al. *Nature* 2017.
-6. Perissin, D. et al. SARPROZ. ISRSE 2011.
 
 ## License
 
-Code: MIT  
-Paper: CC-BY 4.0
+Code: MIT
+Paper: CC BY 4.0
