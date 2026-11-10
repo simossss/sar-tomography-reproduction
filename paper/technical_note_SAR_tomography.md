@@ -84,7 +84,7 @@ It does not by itself close the route the paper actually claims. In [1] the dept
 
 ## 4. Sensitivity: the claimed displacement against what the radar can record
 
-The outline of this section follows an unpublished note that Marcin Gerwin shared with the author [13]. All numbers were recomputed for this note and are printed by `scripts/sensitivity_budget.py`. The inputs are Table 1 of [1], the figures of [1], and two independent studies published in 2026 [9, 10].
+The outline of this section follows an analysis that Marcin Gerwin shared with the author in correspondence [13]. All numbers were recomputed for this note and are printed by `scripts/sensitivity_budget.py`. The inputs are Table 1 of [1], the figures of [1], and two independent studies published in 2026 [9, 10].
 
 ### 4.1 The claimed quantity
 
@@ -136,7 +136,9 @@ The resolution formula of Section 2 contains the wavelength of the vibration, an
 
 - At the measured 2.3 Hz and 6,000 m/s the wavelength is 2.6 km, more than ten times the width of the pyramid. The formula then gives 20 km with the factors stated in the text of [1], or 5 km with the factors printed in its equations. A wave of that length moves the monument as one body.
 - If the plotted series were at 12,500 Hz, an amplitude of 0.1 µm would mean a surface velocity of 7.9 mm/s and an acceleration of about 617 m/s², or 63 g. Either the motion is at 12,500 Hz and physically implausible, or it is at lower frequencies and says nothing about 12,500 Hz.
-- Ambient ground motion carries very little energy at kilohertz frequencies, and rock attenuates what there is. For a quality factor of 100, which is an assumption, the amplitude remaining after 100 m of rock at 12,500 Hz is about 0.1% of the original; at 2.3 Hz it is 99.9%. The survey in [10] does not test this, because it stops at 50 Hz.
+- The paper names its sources: "The vibration energy is generated from many sources such as wind", with a "great contribution" from the city of Cairo and the Nile. Ambient ground motion of that kind carries very little energy at kilohertz frequencies, and rock attenuates what there is. For a quality factor of 100, which is an assumption, the amplitude remaining after 100 m of rock at 12,500 Hz is about 0.1% of the original; at 2.3 Hz it is 99.9%. The survey in [10] does not test this, because it stops at 50 Hz.
+- A stone face moving 0.1 µm at 12,500 Hz is a loudspeaker. It would radiate a tone of about 100 dB at the faces, within the range of human hearing and comparable to a chainsaw at close range. No such tone is heard at the site.
+- Keeping the whole body of the pyramid in that motion would take a continuous supply of power. For limestone at 2,400 kg/m³, a volume of 2.6 million m³ and the same quality factor of 100, the motion dissipates about 150 MW; for quality factors between 200 and 50 the figure is 75 to 300 MW. Wind and city traffic do not deliver that at 12,500 Hz.
 
 ### 4.6 Averaging
 
@@ -403,7 +405,7 @@ Thanks to Marcin Gerwin for sharing the analysis that Section 4 follows and for 
 
 [12] Pastore, E.P. "Addendum I to the Technical Audit and Reproducibility of SAR Doppler Echography: Source-Fidelity and Report-Code Consistency Audit of Pomposi (2026)." Technical report, version 2.6, 16 August 2026. https://doi.org/10.5281/zenodo.21965821
 
-[13] Gerwin, M. "Can Satellite Radar Look Inside the Great Pyramid?" Unpublished note and personal communication, 9 November 2026.
+[13] Gerwin, M. Personal communication, 9 and 10 November 2026.
 
 [14] Biondi, F.; Addabbo, P.; Orlando, D.; Clemente, C. "Micro-Motion Estimation of Maritime Targets Using Pixel Tracking in COSMO-SkyMed Synthetic Aperture Radar Data: An Operative Assessment." *Remote Sensing* 2019, 11, 1637.
 

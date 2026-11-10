@@ -6,7 +6,7 @@ The scientific text is `paper/technical_note_SAR_tomography.md`.
 
 ### Added
 
-- Section 4, a sensitivity budget for the displacement series of the paper under review, with `scripts/sensitivity_budget.py`. It follows an unpublished note shared by Marcin Gerwin and uses Lotti et al. (2026) and ElGabry et al. (2026).
+- Section 4, a sensitivity budget for the displacement series of the paper under review, with `scripts/sensitivity_budget.py`. It follows analysis shared by Marcin Gerwin in correspondence and uses Lotti et al. (2026) and ElGabry et al. (2026).
 - `scripts/noise_controls.py`: random input and planted targets through the code behind the v1 coherence table, the 240-run sweep and the 15-image inversion.
 - `scripts/sidelobe_toy.py`, replacing `aliasing_simulation.py` (moved to `deprecated/`).
 - References to Foreman (2026) and Pastore (2026), with a point-by-point response to the Pastore audit in Section 7.3.

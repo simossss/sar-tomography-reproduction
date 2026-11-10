@@ -112,6 +112,19 @@ q = 100
 print(f"  amplitude left after 100 m, Q = {q}     {np.exp(-np.pi * F_CHOSEN * 100 / (q * V_ROCK)):.4f} at {F_CHOSEN:,.0f} Hz, "
       f"{np.exp(-np.pi * F_MEASURED * 100 / (q * V_ROCK)):.4f} at {F_MEASURED} Hz")
 
+# What a surface moving 0.1 um at 12,500 Hz would do to the air and to the rock.
+RHO_AIR, C_AIR = 1.2, 343.0            # kg/m^3, m/s
+RHO_ROCK = 2400.0                      # kg/m^3, limestone (assumed)
+VOLUME = 2.6e6                         # m^3, the pyramid
+v_peak = w * D_CLAIM
+p_rms = RHO_AIR * C_AIR * v_peak / np.sqrt(2)     # plane radiator, face much larger than the 27 mm wavelength
+faces = 4 * 0.5 * 230.33 * np.hypot(138.5, 230.33 / 2)
+print(f"  sound at the faces                    {20 * np.log10(p_rms / 20e-6):.0f} dB SPL, "
+      f"{p_rms ** 2 / (RHO_AIR * C_AIR) * faces / 1e3:.1f} kW radiated from {faces:,.0f} m^2")
+energy = 0.5 * RHO_ROCK * v_peak ** 2 * VOLUME    # whole volume moving at that amplitude
+for qq in (200, 100, 50):
+    print(f"  power to sustain the motion, Q = {qq:<3d}  {w * energy / qq / 1e6:.0f} MW")
+
 print("\n4.6  Averaging")
 cell_area = az_cell * rg_cell
 for snr_db in (40, 20):
